@@ -103,8 +103,8 @@ def summarize_results(scores):
   m, s = mean(scores), std(scores)
   print('Accuracy: %.3f%% (+/-%.3f)' % (m, s))
 
-def predict_prova():
-  verbose, epochs, batch_size = 0, 5, 128   
+#-----------------------------------------------------------------------------
+def predict_prova(): 
   print("Start prediction")
   trainX, trainy, testX, testy = load_dataset()
   features = read_csv('drive/MyDrive/HARDataset/activity_labels.txt', header=None, delim_whitespace=True)
@@ -116,13 +116,11 @@ def predict_prova():
   loaded_model.load_weights("model.h5")
   print("Loaded model from disk")
   loaded_model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
-
   trainX = trainX.reshape(7352,128,9)
   result = (loaded_model.predict(trainX))
   result = result.reshape(7352,6,1)
-  max = 0
   columns = 6
-  for r in range(0,82):
+  for r in range(0,7352):
     index = 0
     max = 0
     for t in range(0,columns):
@@ -134,7 +132,7 @@ def predict_prova():
     print(r+1, end=' ')
     print(index+1, end=' ')
     print(features[1][index])
-      
+#------------------------------------------------------------------------------
 
 # run an experiment
 def run_experiment(repeats=1):
