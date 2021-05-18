@@ -16,7 +16,8 @@ import numpy as np
 import os
 from sklearn.metrics import classification_report
 
-train = input("Run training? (1/0)")
+train = int(input("Run training? (1/0)"))
+print(train)
 
 # load a single file as a numpy array
 def load_file(filepath):
@@ -111,7 +112,6 @@ def summarize_results(scores):
 #-----------------------------------------------------------------------------
 
 def predict_prova(): 
-
   mode = int(input("Classification_report(1) or predict(0)? "))
   trainX, trainy, testX, testy = load_dataset()
   features = read_csv('drive/MyDrive/HARDataset/activity_labels.txt', header=None, delim_whitespace=True)
@@ -128,7 +128,7 @@ def predict_prova():
   columns = 6
   if(mode == 1):
     print("Start classification report")
-    testX = testX.reshape(len(testy),128,9)
+    testX = testX.reshape(len(testX),128,9)
     result = (loaded_model.predict(testX))
     list_result = list()
     list_test = list()
@@ -148,34 +148,39 @@ def predict_prova():
       #print(index+1, end=' ')
       #print(features[1][index])
     print(classification_report(list_test, list_result))
-
+    
   else:
     print("Start predict")
-    request = int(input("Inserire l'indice della misurazione da riconoscere: "))
-    proviamo = testX[request]
-    proviamo = proviamo.reshape(1,128,9)
-    testX = testX.reshape(len(testX),128,9)
-    result = (loaded_model.predict(proviamo))
-    #result = result.reshape(len(testX),6,1)
-    columns = 6
-    max = 0
-    for t in range(0,columns):
-      prov = result[0][t]
-      if(prov > max):
-        max = prov
-        index = t
-    print(request, end=' ')
-    print(features[1][index], end=' ')
-    print("({})" .format(index+1)) 
+    request = 1
+    while(request > 0):
+      request = int(input("Inserire l'indice della misurazione da riconoscere (0 per uscire): "))
+      target = testX[request]
+      target = target.reshape(1,128,9)
+      testX = testX.reshape(len(testX),128,9)
+      result = (loaded_model.predict(target))
+      #result = result.reshape(len(testX),6,1)
+      columns = 6
+      max = 0
+      index = 0
+      for t in range(0,columns):
+        prov = result[0][t]
+        if(prov > max):
+          max = prov
+          index = t
+      print(request, end=' ')
+      print(features[1][index], end=' ')
+      print("({})" .format(index+1))
+      print("Correct: ", testy[request])
+      
 #------------------------------------------------------------------------------
 
 # run an experiment
 def run_experiment(repeats=10):
+  print("Start experiment")
   # load data
   trainX, trainy, testX, testy = load_dataset()
   # repeat experiment
   scores = list()
-  
   for r in range(repeats):
     score = evaluate_model(trainX, trainy, testX, testy)
     score = score * 100.0
@@ -186,7 +191,8 @@ def run_experiment(repeats=10):
  
 
 # run the experiment
-if(train == 1 ): run_experiment()
+if(train == 1 ):
+   run_experiment()
 predict_prova()
 
 #identificazione: riconoscimento del soggetto all'interno di un set di utenti
