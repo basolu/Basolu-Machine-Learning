@@ -1,4 +1,3 @@
-# cnn model
 from numpy import mean
 from numpy import std
 from numpy import dstack
@@ -13,8 +12,11 @@ from keras.layers.convolutional import MaxPooling1D
 from keras.utils import to_categorical
 from keras.callbacks import TensorBoard
 from keras.models import model_from_json
-import numpy
+import numpy as np
 import os
+from sklearn.metrics import classification_report
+
+train = input("Run training? (1/0)")
 
 # load a single file as a numpy array
 def load_file(filepath):
@@ -55,6 +57,7 @@ def load_dataset(prefix=''):
   print(trainX.shape, trainy.shape)
   # load all test
   testX, testy = load_dataset_group('test', prefix + 'drive/MyDrive/HARDataset/')
+  subjects = read_csv('drive/MyDrive/HARDataset/train/subject_train.txt', header=None, delim_whitespace=True)
   print(testX.shape, testy.shape)
   # zero-offset class values
   trainy = trainy - 1
@@ -67,8 +70,9 @@ def load_dataset(prefix=''):
 
 # fit and evaluate a model
 def evaluate_model(trainX, trainy, testX, testy):
-  verbose, epochs, batch_size = 0, 5, 32
+  verbose, epochs, batch_size = 1, 15, 32
   n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
+  
   model = Sequential()
   #estrazione featuers
   #primo layer convoluzionale: applica le varie features per classificare
@@ -78,10 +82,11 @@ def evaluate_model(trainX, trainy, testX, testy):
   model.add(MaxPooling1D(pool_size=2))
   #classificazione delle features estratte: 
   model.add(Flatten())
-  model.add(Dense(100, activation='relu')) 
   #numero di neuroni (100) = numero di classi delle attività da individuare
+  model.add(Dense(100, activation='relu')) 
+  #n_output = number of subjects -> da impostare col n° delle attività
+  #nell'ultimo layer il n° di neuroni dev'essere uguale al n° di etichette
   model.add(Dense(n_outputs, activation='softmax')) 
-  #n_output = number of subjects -> da impostare col n° delle attività 
   tensorboard = TensorBoard(log_dir='./logs', histogram_freq=0, write_graph=True, write_images=False)
   model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
   # fit network
@@ -104,8 +109,10 @@ def summarize_results(scores):
   print('Accuracy: %.3f%% (+/-%.3f)' % (m, s))
 
 #-----------------------------------------------------------------------------
+
 def predict_prova(): 
-  print("Start prediction")
+
+  mode = int(input("Classification_report(1) or predict(0)? "))
   trainX, trainy, testX, testy = load_dataset()
   features = read_csv('drive/MyDrive/HARDataset/activity_labels.txt', header=None, delim_whitespace=True)
   json_file = open('model.json', 'r')
@@ -116,40 +123,70 @@ def predict_prova():
   loaded_model.load_weights("model.h5")
   print("Loaded model from disk")
   loaded_model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
-  trainX = trainX.reshape(7352,128,9)
-  result = (loaded_model.predict(trainX))
-  result = result.reshape(7352,6,1)
+  _, accuracy = loaded_model.evaluate(testX, testy, batch_size=32, verbose=1)
+  print("Accuracy: ",accuracy)
   columns = 6
-  for r in range(0,7352):
-    index = 0
-    max = 0
-    for t in range(0,columns):
-       #print(result[r][t])
+  if(mode == 1):
+    print("Start classification report")
+    testX = testX.reshape(len(testy),128,9)
+    result = (loaded_model.predict(testX))
+    list_result = list()
+    list_test = list()
+    #Questa parte della funzione stampa la relativa features di tutti i sample
+    for r in range(0,len(testy)): 
+      index = 0
+      max = 0
+      for t in range(0,columns):
         prov = float(result[r][t])
         if(prov > max):
           max = prov
           index = t
-    print(r+1, end=' ')
-    print(index+1, end=' ')
-    print(features[1][index])
+        if(testy[r][t] == 1):
+          list_test.append(t+1)
+      list_result.append(index+1)
+      #print(r+1, end=' ')
+      #print(index+1, end=' ')
+      #print(features[1][index])
+    print(classification_report(list_test, list_result))
+
+  else:
+    print("Start predict")
+    request = int(input("Inserire l'indice della misurazione da riconoscere: "))
+    proviamo = testX[request]
+    proviamo = proviamo.reshape(1,128,9)
+    testX = testX.reshape(len(testX),128,9)
+    result = (loaded_model.predict(proviamo))
+    #result = result.reshape(len(testX),6,1)
+    columns = 6
+    max = 0
+    for t in range(0,columns):
+      prov = result[0][t]
+      if(prov > max):
+        max = prov
+        index = t
+    print(request, end=' ')
+    print(features[1][index], end=' ')
+    print("({})" .format(index+1)) 
 #------------------------------------------------------------------------------
 
 # run an experiment
-def run_experiment(repeats=1):
-	# load data
-	trainX, trainy, testX, testy = load_dataset()
-	# repeat experiment
-	scores = list()
-	for r in range(repeats):
-		score = evaluate_model(trainX, trainy, testX, testy)
-		score = score * 100.0
-		print('>#%d: %.3f' % (r+1, score))
-		scores.append(score)
-	# summarize results
-	summarize_results(scores)
+def run_experiment(repeats=10):
+  # load data
+  trainX, trainy, testX, testy = load_dataset()
+  # repeat experiment
+  scores = list()
+  
+  for r in range(repeats):
+    score = evaluate_model(trainX, trainy, testX, testy)
+    score = score * 100.0
+    print('>#%d: %.3f' % (r+1, score))
+    scores.append(score)
+	  # summarize results
+    summarize_results(scores)
+ 
 
 # run the experiment
-run_experiment()
+if(train == 1 ): run_experiment()
 predict_prova()
 
 #identificazione: riconoscimento del soggetto all'interno di un set di utenti
