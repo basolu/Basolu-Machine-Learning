@@ -16,7 +16,7 @@ import numpy as np
 import os
 from sklearn.metrics import classification_report
 
-train = int(input("Run training? (1/0)"))
+train = int(input("Run training? (1/0): "))
 print(train)
 
 # load a single file as a numpy array
@@ -78,6 +78,7 @@ def evaluate_model(trainX, trainy, testX, testy):
   #estrazione featuers
   #primo layer convoluzionale: applica le varie features per classificare
   model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(n_timesteps,n_features)))
+  model.add(Conv1D(filters=64, kernel_size=3, activation='relu'))
   model.add(Conv1D(filters=64, kernel_size=3, activation='relu'))
   model.add(Dropout(0.5))
   model.add(MaxPooling1D(pool_size=2))
@@ -147,7 +148,7 @@ def predict_prova():
       #print(r+1, end=' ')
       #print(index+1, end=' ')
       #print(features[1][index])
-    print(classification_report(list_test, list_result))
+    print(classification_report(list_test, list_result, target_names=features[1]))
     
   else:
     print("Start predict")
@@ -170,7 +171,9 @@ def predict_prova():
       print(request, end=' ')
       print(features[1][index], end=' ')
       print("({})" .format(index+1))
+      
       print("Correct: ", testy[request])
+    print("Fine prediction")
       
 #------------------------------------------------------------------------------
 
@@ -188,10 +191,9 @@ def run_experiment(repeats=10):
     scores.append(score)
 	  # summarize results
     summarize_results(scores)
- 
 
 # run the experiment
-if(train == 1 ):
+if(train == 1):
    run_experiment()
 predict_prova()
 
@@ -199,5 +201,3 @@ predict_prova()
 #autenticazione: verifica che un dato sample, sia appartenente a quella determinata persona ***
 #addestrare per riconoscere l'attività, e poi per distinguere gli indiivdui andiamo ad estrarre le features e confrontate
 #con tecniche quali la verifica della loro distanza 
-#salvare i pesi della rete
-#model.predict(): ricevo in ingresso un sample(da dimensionare 9x128) e in uscita l'etichetta dell'attività
